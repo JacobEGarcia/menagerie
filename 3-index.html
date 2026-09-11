@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MENAGERIE — a robot zoo</title>
+<meta name="description" content="Four real robots from the MuJoCo Menagerie, animated live in your browser.">
+<style>
+  :root{
+    --bg:#121214; --panel:#17171a; --ink:#ece9e4; --dim:#8f8c87;
+    --hair:#2a2a2e; --accent:#d8a24a; --accent-dim:#6b5326;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,-apple-system,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden}
+  canvas{display:block}
+  #stage{position:fixed;inset:0}
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:baseline;padding:22px 28px;pointer-events:none;z-index:10}
+  .wordmark{font-size:15px;letter-spacing:.42em;font-weight:600;color:var(--ink)}
+  .wordmark span{color:var(--accent)}
+  nav{display:flex;gap:20px;pointer-events:auto}
+  nav button{background:none;border:0;color:var(--dim);font:inherit;font-size:11px;
+    letter-spacing:.22em;cursor:pointer;padding:6px 2px;border-bottom:1px solid transparent;
+    transition:color .25s,border-color .25s}
+  nav button:hover{color:var(--ink)}
+  nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+  nav button i{font-style:normal;color:var(--accent);margin-right:6px;font-size:10px}
+  .label{position:fixed;transform:translate(-50%,0);text-align:center;pointer-events:none;
+    z-index:5;transition:opacity .4s}
+  .label .n{font-size:11px;letter-spacing:.30em;color:var(--ink)}
+  .label .k{font-size:9px;letter-spacing:.24em;color:var(--dim);margin-top:5px}
+  #panel{position:fixed;right:28px;top:50%;transform:translateY(-50%);width:262px;
+    background:var(--panel);border:1px solid var(--hair);padding:22px 22px 18px;z-index:10}
+  #panel .placard-no{font-size:10px;letter-spacing:.24em;color:var(--accent)}
+  #panel h2{font-size:17px;letter-spacing:.14em;margin:8px 0 4px;font-weight:600}
+  #panel .sub{font-size:10px;letter-spacing:.18em;color:var(--dim);margin-bottom:14px}
+  #panel .spec{font-size:10.5px;line-height:1.85;color:var(--dim);letter-spacing:.04em;
+    border-top:1px solid var(--hair);padding-top:12px;margin-bottom:14px}
+  #panel .spec b{color:var(--ink);font-weight:500}
+  .ctl{margin-bottom:13px}
+  .ctl label{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.2em;
+    color:var(--dim);margin-bottom:6px}
+  .ctl label output{color:var(--ink);letter-spacing:.05em}
+  input[type=range]{width:100%;appearance:none;-webkit-appearance:none;height:2px;
+    background:var(--hair);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:11px;height:11px;
+    border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;
+    background:var(--accent);border:2px solid var(--bg)}
+  .btns{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px}
+  .btns button{flex:1 1 auto;background:none;border:1px solid var(--hair);color:var(--ink);
+    font:inherit;font-size:9.5px;letter-spacing:.18em;padding:8px 10px;cursor:pointer;
+    transition:border-color .2s,color .2s}
+  .btns button:hover{border-color:var(--accent)}
+  .btns button.on{background:var(--accent);border-color:var(--accent);color:#141310}
+  footer{position:fixed;left:28px;bottom:20px;z-index:10;font-size:9.5px;letter-spacing:.16em;
+    color:var(--dim);line-height:2;pointer-events:none}
+  footer a{color:var(--dim);text-decoration-color:var(--accent-dim);pointer-events:auto}
+  footer a:hover{color:var(--ink)}
+  #loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;transition:opacity .6s}
+  #loader .w{font-size:13px;letter-spacing:.42em}
+  #loader .bar{width:180px;height:1px;background:var(--hair);position:relative;overflow:hidden}
+  #loader .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);width:0%}
+  #hint{position:fixed;bottom:20px;right:28px;font-size:9.5px;letter-spacing:.2em;color:var(--dim);z-index:10}
+  @media (max-width:760px){
+    header{padding:16px 18px;flex-direction:column;gap:10px;align-items:flex-start}
+    nav{flex-wrap:wrap;gap:12px}
+    #panel{left:12px;right:12px;bottom:12px;top:auto;transform:none;width:auto;
+      max-height:44vh;overflow:auto;padding:16px}
+    footer{display:none}
+    #hint{display:none}
+    .label .k{display:none}
+  }
+</style>
+<script type="importmap">
+{"imports":{"three":"./three.module.js"}}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<header>
+  <div class="wordmark">MENAGERIE<span>.</span></div>
+  <nav id="nav"></nav>
+</header>
+<div id="labels"></div>
+<aside id="panel"></aside>
+<footer>
+  FOUR ROBOTS FROM THE <a href="https://github.com/google-deepmind/mujoco_menagerie">MUJOCO MENAGERIE</a> — REAL MJCF MODELS, REAL MESHES<br>
+  GO2 &amp; G1 © UNITREE ROBOTICS · PANDA © FRANKA EMIKA · ALLEGRO © WONIK ROBOTICS / SIMLAB
+</footer>
+<div id="hint">DRAG TO ORBIT · SCROLL TO ZOOM · CLICK A ROBOT</div>
+<div id="loader"><div class="w">MENAGERIE</div><div class="bar"><i id="loadbar"></i></div></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
